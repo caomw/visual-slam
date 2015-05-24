@@ -1,0 +1,9 @@
+# Visual Studio
+*.sln
+*.opensdf
+*.sdf
+*.v11.suo
+*.vcxproj
+*.vcxproj.filters
+Debug/
+Release/

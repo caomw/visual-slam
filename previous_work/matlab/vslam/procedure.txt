@@ -1,0 +1,7 @@
+
+% Generate observations, (input argument is relative path to bumblebee image data)
+z = convert_sequence_to_matched_observations('../data/shrimp_data');
+
+% Run SLAM
+K = bumblebee_configfile('../data/shrimp_data/bumblebee.config', 'left');
+[xsall, sw, y, Y, fcount] = demo_batch_vslam(z, K);

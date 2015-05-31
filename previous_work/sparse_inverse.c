@@ -130,7 +130,7 @@ SparseMatrix* transpose(SparseMatrix *m, int *w)
     return 0;
 }
 
-/* Allocate a sparse matrix with non-zero pattern equal to L*L', but without
+/* Allocate a sparse matrix with non-zero pattern equal to L+L', but without
    initialising any values. */
 SparseMatrix* allocate_symmetric(const SparseMatrix *L, SparseMatrix *P)
 {

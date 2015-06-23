@@ -48,7 +48,7 @@ SparseMatrix* create_sparse_matrix(int N, int nz)
     a = (char*) malloc(sizeof(SparseMatrix) + (nz+N+1)*sizeof(int) + nz*sizeof(double));
     m = (SparseMatrix*) a;
 
-    if (m != NULL) {
+    if (m != NULL) { // FIXME: are there any alignment issues here?
         a += sizeof(SparseMatrix);
         m->x = (double*) a;
         a += nz * sizeof(double);
@@ -174,11 +174,8 @@ SparseMatrix* allocate_symmetric(const SparseMatrix *L, SparseMatrix *P)
     return P;
 }
 
-#define VERSION 1
-#if VERSION == 1
-
 /* Basic sparse inverse, aka Takahashi inverse. */
-SparseMatrix* sparse_inverse(const SparseMatrix *L, SparseMatrix *P, int *w)
+SparseMatrix* sparse_inverse_a(const SparseMatrix *L, SparseMatrix *P, int *w)
 {
     int i, j, k, ks, kL, kP; 
     int delw = 0;
@@ -237,13 +234,20 @@ SparseMatrix* sparse_inverse(const SparseMatrix *L, SparseMatrix *P, int *w)
     return P;
 }
 
-#elif VERSION == 2
-
 SparseMatrix* sparse_inverse(const SparseMatrix *L, SparseMatrix *P, int *w)
 {
-    int i, j, k;
+	sparse_inverse_a(L, P, w);
+}
+
+#if 0
+
+/* Using pointers rather than indexing, but still computing P in column order */
+SparseMatrix* sparse_inverse_b(const SparseMatrix *L, SparseMatrix *P, int *w)
+{
+    int i, j, kL, kP;
     int freew = 0;
     double dinv;
+	const double *pLt, *pLb, *pPt, *pPb;
 
     /* Allocate memory, if necessary */
     if (P == NULL) P = allocate_symmetric(L, NULL);
@@ -255,18 +259,26 @@ SparseMatrix* sparse_inverse(const SparseMatrix *L, SparseMatrix *P, int *w)
 
     /* Initialise workspace to index diagonal element for each column */
     for (j = 0; j < P->N; ++j) {
-        k = P->j[j];         /* get start index for col (j) in P */
-        while (P->i[k] != j) /* find diagonal element in col (j) */
-            ++k;                  
-        w[j] = k;
+        kP = P->j[j];         /* get start index for col (j) in P */
+        while (P->i[kP] != j) /* find diagonal element in col (j) */
+            ++kP;                  
+        w[j] = kP;
     }
 
     /* Compute sparse P */
     j = L->N; /* column index, initialised at one-past-end */
-    for (k = L->nz-1; k >= 0; --k, --ks) { /* compute entries in reverse order */
+    for (kL = L->nz-1; kL >= 0; --kL, --kP) { /* compute entries in reverse order */
 
         /* Check if element (k) starts new column, ie, k indexes bottom of column (j-1) in L */
-        if (k == L->j[j]-1) {
+        if (kL == L->j[j]-1) {
+			kP = P->j[j]-1; /* get index of bottom of column (j-1) in P */
+			--j;			/* shift one column left (ie, j = j-1) */
+
+			/* Get pointers for */
+
+
+
+
             kPj = P->j[j]-1; /* get index of bottom of column (j-1) in P */
             --j; /* shift one column left (ie, j = j-1) */
 
@@ -287,13 +299,20 @@ SparseMatrix* sparse_inverse(const SparseMatrix *L, SparseMatrix *P, int *w)
 
         /* Multiply by dinv. */
         P->x[kPj] *= dinv;
-        P->x[w[i]--] = P->x[kPj]; /* store symmetric entry in P */
+
+		/* Store symmetric entry in P */
+        P->x[w[i]--] = P->x[kPj]; 
         /* We shift w[i] up by one, ready for next symmetric entry */
     }
 
     /* Work complete, free workspace if it was created locally */
     if (freew) free(w);
     return P;
+}
+
+/* Same as sparse_inverse_b(), but computing P in row order */
+SparseMatrix* sparse_inverse_c(const SparseMatrix *L, SparseMatrix *P, int *w)
+{
 }
 
 #endif
